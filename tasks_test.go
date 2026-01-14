@@ -85,18 +85,18 @@ func TestTasks_Create(t *testing.T) {
 				t.Errorf("expected POST, got %s", r.Method)
 			}
 
-			var req CreateTaskRequest
+			var req createTaskWrapper
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 				t.Fatalf("failed to decode request: %v", err)
 			}
-			if req.Content != "New task" {
-				t.Errorf("expected content 'New task', got %s", req.Content)
+			if req.Task.Content != "New task" {
+				t.Errorf("expected content 'New task', got %s", req.Task.Content)
 			}
 
 			response := Task{
 				ID:          200,
 				ChecklistID: 1,
-				Content:     req.Content,
+				Content:     req.Task.Content,
 				Status:      StatusOpen,
 				CreatedAt:   NewAPITime(time.Now()),
 				UpdatedAt:   NewAPITime(time.Now()),
@@ -130,35 +130,35 @@ func TestTasks_Create_WithBuilder(t *testing.T) {
 		case "/auth/login.json":
 			json.NewEncoder(w).Encode(map[string]string{"token": "test-token"})
 		case "/checklists/1/tasks.json":
-			var req CreateTaskRequest
+			var req createTaskWrapper
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 				t.Fatalf("failed to decode request: %v", err)
 			}
 
-			if req.Content != "Task with options" {
-				t.Errorf("expected content 'Task with options', got %s", req.Content)
+			if req.Task.Content != "Task with options" {
+				t.Errorf("expected content 'Task with options', got %s", req.Task.Content)
 			}
-			if req.Priority != 1 {
-				t.Errorf("expected priority 1, got %d", req.Priority)
+			if req.Task.Priority != 1 {
+				t.Errorf("expected priority 1, got %d", req.Task.Priority)
 			}
-			if req.Due != "^tomorrow" {
-				t.Errorf("expected due '^tomorrow', got %s", req.Due)
+			if req.Task.Due != "^tomorrow" {
+				t.Errorf("expected due '^tomorrow', got %s", req.Task.Due)
 			}
-			if req.Tags != "tag1, tag2" {
-				t.Errorf("expected tags 'tag1, tag2', got %s", req.Tags)
+			if req.Task.Tags != "tag1, tag2" {
+				t.Errorf("expected tags 'tag1, tag2', got %s", req.Task.Tags)
 			}
-			if req.ParentID != 100 {
-				t.Errorf("expected parent_id 100, got %d", req.ParentID)
+			if req.Task.ParentID != 100 {
+				t.Errorf("expected parent_id 100, got %d", req.Task.ParentID)
 			}
 
 			response := Task{
 				ID:          201,
 				ChecklistID: 1,
-				ParentID:    req.ParentID,
-				Content:     req.Content,
-				Priority:    req.Priority,
+				ParentID:    req.Task.ParentID,
+				Content:     req.Task.Content,
+				Priority:    req.Task.Priority,
 				DueDateRaw:  "2026-01-15",
-				TagsAsText:  req.Tags,
+				TagsAsText:  req.Task.Tags,
 			}
 			json.NewEncoder(w).Encode(response)
 		default:
@@ -199,10 +199,18 @@ func TestTasks_Update(t *testing.T) {
 				t.Errorf("expected PUT, got %s", r.Method)
 			}
 
+			var req updateTaskWrapper
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				t.Fatalf("failed to decode request: %v", err)
+			}
+			if req.Task.Content == nil || *req.Task.Content != "Updated content" {
+				t.Errorf("expected content 'Updated content', got %v", req.Task.Content)
+			}
+
 			response := Task{
 				ID:          101,
 				ChecklistID: 1,
-				Content:     "Updated content",
+				Content:     *req.Task.Content,
 				UpdatedAt:   NewAPITime(time.Now()),
 			}
 			json.NewEncoder(w).Encode(response)
@@ -420,8 +428,8 @@ func TestTaskBuilder(t *testing.T) {
 	if req.Position != 3 {
 		t.Errorf("expected Position 3, got %d", req.Position)
 	}
-	if req.Due != "^next week" {
-		t.Errorf("expected Due '^next week', got %s", req.Due)
+	if req.Due != "^Next Monday" {
+		t.Errorf("expected Due '^Next Monday', got %s", req.Due)
 	}
 	if req.Priority != 2 {
 		t.Errorf("expected Priority 2, got %d", req.Priority)
@@ -437,8 +445,8 @@ func timePtr(t time.Time) *time.Time {
 
 // TestTasks_Create_RealAPIFormat tests that the client sends the correct
 // nested parameter format expected by the real Checkvist API.
-// The API expects: {"task": {"content": "text", "due": "...", ...}}
-// Not the flat format: {"content": "text", "due": "...", ...}
+// The API expects: {"task": {"content": "text", "due_date": "...", ...}}
+// Not the flat format: {"content": "text", "due_date": "...", ...}
 //
 // This test documents the current FAILING behavior - it should pass once
 // the parameter format is fixed.
@@ -490,7 +498,7 @@ func TestTasks_Create_RealAPIFormat(t *testing.T) {
 			}
 
 			content, _ := taskMap["content"].(string)
-			due, _ := taskMap["due"].(string)
+			due, _ := taskMap["due_date"].(string)
 			priority, _ := taskMap["priority"].(float64)
 			tags, _ := taskMap["tags"].(string)
 
@@ -565,10 +573,10 @@ func TestTasks_Create_WithDueDate_RealAPIFormat(t *testing.T) {
 			if hasTaskWrapper {
 				taskMap := taskField.(map[string]interface{})
 				content, _ = taskMap["content"].(string)
-				due, _ = taskMap["due"].(string)
+				due, _ = taskMap["due_date"].(string)
 			} else {
 				content, _ = rawBody["content"].(string)
-				due, _ = rawBody["due"].(string)
+				due, _ = rawBody["due_date"].(string)
 			}
 
 			// Simulate API behavior: only process due if in task wrapper

@@ -55,8 +55,8 @@ func (t *APITime) UnmarshalJSON(data []byte) error {
 	// Try formats in order of likelihood
 	formats := []string{
 		"2006/01/02 15:04:05 -0700", // Checkvist API format
-		time.RFC3339,                 // ISO8601 with timezone
-		"2006-01-02T15:04:05Z",       // RFC3339 without offset
+		time.RFC3339,                // ISO8601 with timezone
+		"2006-01-02T15:04:05Z",      // RFC3339 without offset
 	}
 
 	for _, format := range formats {
@@ -178,13 +178,13 @@ type DueDate struct {
 // Common due date constants using Checkvist's smart syntax.
 var (
 	// DueToday sets the due date to today.
-	DueToday = DueDate{value: "^today"}
+	DueToday = DueDate{value: "^Today"}
 	// DueTomorrow sets the due date to tomorrow.
-	DueTomorrow = DueDate{value: "^tomorrow"}
-	// DueNextWeek sets the due date to next week.
-	DueNextWeek = DueDate{value: "^next week"}
-	// DueNextMonth sets the due date to next month.
-	DueNextMonth = DueDate{value: "^next month"}
+	DueTomorrow = DueDate{value: "^Tomorrow"}
+	// DueASAP sets the due date to ASAP.
+	DueASAP = DueDate{value: "^ASAP"}
+	// DueMonday sets the due date to next Monday.
+	DueMonday = DueDate{value: "^Monday"}
 )
 
 // DueAt creates a DueDate from a Go time.Time value.
@@ -193,7 +193,7 @@ func DueAt(t time.Time) DueDate {
 }
 
 // DueString creates a DueDate from a raw smart syntax string.
-// The string should use Checkvist's smart syntax (e.g., "^2026-02-01", "^friday").
+// The string should use Checkvist's smart syntax (e.g., "^2026-02-01", "^friday", "^next week").
 func DueString(s string) DueDate {
 	return DueDate{value: s}
 }

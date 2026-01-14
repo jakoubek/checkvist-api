@@ -57,10 +57,16 @@ type CreateTaskRequest struct {
 	Content   string `json:"content"`
 	ParentID  int    `json:"parent_id,omitempty"`
 	Position  int    `json:"position,omitempty"`
-	Due       string `json:"due,omitempty"`
+	Due       string `json:"due_date,omitempty"`
 	Priority  int    `json:"priority,omitempty"`
 	Tags      string `json:"tags,omitempty"`
 	Repeat    string `json:"repeat,omitempty"`
+}
+
+// createTaskWrapper wraps the task fields for the nested JSON format
+// expected by the Checkvist API: {"task": {"content": "...", ...}}
+type createTaskWrapper struct {
+	Task CreateTaskRequest `json:"task"`
 }
 
 // TaskBuilder provides a fluent interface for building task creation requests.
@@ -148,7 +154,7 @@ func (b *TaskBuilder) build() CreateTaskRequest {
 // Create creates a new task using a TaskBuilder.
 func (s *TaskService) Create(ctx context.Context, builder *TaskBuilder) (*Task, error) {
 	path := fmt.Sprintf("/checklists/%d/tasks.json", s.checklistID)
-	body := builder.build()
+	body := createTaskWrapper{Task: builder.build()}
 
 	var task Task
 	if err := s.client.doPost(ctx, path, body, &task); err != nil {
@@ -164,17 +170,23 @@ type UpdateTaskRequest struct {
 	Content  *string `json:"content,omitempty"`
 	ParentID *int    `json:"parent_id,omitempty"`
 	Position *int    `json:"position,omitempty"`
-	Due      *string `json:"due,omitempty"`
+	Due      *string `json:"due_date,omitempty"`
 	Priority *int    `json:"priority,omitempty"`
 	Tags     *string `json:"tags,omitempty"`
+}
+
+// updateTaskWrapper wraps the task fields for PUT requests
+type updateTaskWrapper struct {
+	Task UpdateTaskRequest `json:"task"`
 }
 
 // Update updates an existing task.
 func (s *TaskService) Update(ctx context.Context, taskID int, req UpdateTaskRequest) (*Task, error) {
 	path := fmt.Sprintf("/checklists/%d/tasks/%d.json", s.checklistID, taskID)
+	body := updateTaskWrapper{Task: req}
 
 	var task Task
-	if err := s.client.doPut(ctx, path, req, &task); err != nil {
+	if err := s.client.doPut(ctx, path, body, &task); err != nil {
 		return nil, err
 	}
 
