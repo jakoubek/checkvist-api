@@ -51,3 +51,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Authentication flow tests
   - Retry logic tests
   - httptest.Server-based mocking
+
+- **Filter Builder**: Client-side task filtering (API has no server-side filtering)
+  - `NewFilter(tasks)` constructor
+  - `WithTag`, `WithTags` for tag filtering (AND logic)
+  - `WithStatus` for status filtering (Open, Closed, Invalidated)
+  - `WithDueBefore`, `WithDueAfter`, `WithDueOn` for due date filtering
+  - `WithOverdue` for finding overdue open tasks
+  - `WithSearch` for case-insensitive content search
+  - `Apply()` returns filtered tasks
+  - Performance: <10ms for 1000+ tasks
+
+- **Checklist Archive**: Archive and unarchive checklists
+  - `ChecklistService.Archive(ctx, id)` to archive a checklist
+  - `ChecklistService.Unarchive(ctx, id)` to restore an archived checklist
+
+- **Repeating Tasks**: Support for recurring task patterns
+  - `TaskBuilder.WithRepeat(pattern)` using Checkvist smart syntax
+  - Supports: daily, weekly, monthly, yearly, custom intervals
+
+- **GoDoc Examples**: Runnable examples for documentation
+  - `Example_basicUsage` - complete usage flow
+  - `ExampleNewClient` - client configuration options
+  - `ExampleTaskService_Create` - task creation with builder
+  - `ExampleNewFilter`, `ExampleFilter_Apply` - filtering examples
+  - `ExampleDueAt`, `ExampleDueInDays` - due date helpers
