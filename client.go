@@ -11,11 +11,14 @@
 package checkvist
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -254,4 +257,166 @@ func (c *Client) CurrentUser(ctx context.Context) (*User, error) {
 	}
 
 	return &user, nil
+}
+
+// doRequest performs an HTTP request with automatic authentication and retry logic.
+// It handles JSON marshaling of the request body and unmarshaling of the response.
+func (c *Client) doRequest(ctx context.Context, method, path string, body any, result any) error {
+	if err := c.ensureAuthenticated(ctx); err != nil {
+		return err
+	}
+
+	var bodyReader io.Reader
+	if body != nil {
+		bodyBytes, err := json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("marshaling request body: %w", err)
+		}
+		bodyReader = bytes.NewReader(bodyBytes)
+	}
+
+	var lastErr error
+	for attempt := 0; attempt <= c.retryConf.MaxRetries; attempt++ {
+		if attempt > 0 {
+			delay := c.calculateRetryDelay(attempt)
+			c.logger.Debug("retrying request",
+				"attempt", attempt,
+				"delay", delay,
+				"path", path,
+			)
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(delay):
+			}
+
+			// Reset body reader for retry
+			if body != nil {
+				bodyBytes, _ := json.Marshal(body)
+				bodyReader = bytes.NewReader(bodyBytes)
+			}
+		}
+
+		req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bodyReader)
+		if err != nil {
+			return fmt.Errorf("creating request: %w", err)
+		}
+
+		req.Header.Set("X-Client-Token", c.getToken())
+		if body != nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
+
+		c.logger.Debug("sending request",
+			"method", method,
+			"path", path,
+			"attempt", attempt,
+		)
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			if c.shouldRetry(err, nil) {
+				lastErr = err
+				continue
+			}
+			return fmt.Errorf("request failed: %w", err)
+		}
+
+		respBody, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if err != nil {
+			lastErr = fmt.Errorf("reading response body: %w", err)
+			continue
+		}
+
+		c.logger.Debug("received response",
+			"status", resp.StatusCode,
+			"path", path,
+		)
+
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			if result != nil && len(respBody) > 0 {
+				if err := json.Unmarshal(respBody, result); err != nil {
+					return fmt.Errorf("decoding response: %w", err)
+				}
+			}
+			return nil
+		}
+
+		apiErr := NewAPIError(resp, string(respBody))
+		if c.shouldRetry(nil, resp) {
+			lastErr = apiErr
+			continue
+		}
+
+		return apiErr
+	}
+
+	if lastErr != nil {
+		return fmt.Errorf("request failed after %d retries: %w", c.retryConf.MaxRetries, lastErr)
+	}
+	return errors.New("request failed: unknown error")
+}
+
+// shouldRetry determines if a request should be retried based on the error or response.
+func (c *Client) shouldRetry(err error, resp *http.Response) bool {
+	if err != nil {
+		// Retry on network errors (timeout, connection reset, etc.)
+		return true
+	}
+
+	if resp != nil {
+		// Retry on rate limiting
+		if resp.StatusCode == http.StatusTooManyRequests {
+			return true
+		}
+		// Retry on server errors
+		if resp.StatusCode >= 500 {
+			return true
+		}
+	}
+
+	return false
+}
+
+// calculateRetryDelay calculates the delay before the next retry attempt
+// using exponential backoff with optional jitter.
+func (c *Client) calculateRetryDelay(attempt int) time.Duration {
+	// Exponential backoff: baseDelay * 2^attempt
+	delay := c.retryConf.BaseDelay * time.Duration(1<<uint(attempt))
+
+	// Cap at max delay
+	if delay > c.retryConf.MaxDelay {
+		delay = c.retryConf.MaxDelay
+	}
+
+	// Add jitter (0-25% of delay)
+	if c.retryConf.Jitter {
+		jitter := time.Duration(rand.Int63n(int64(delay / 4)))
+		delay += jitter
+	}
+
+	return delay
+}
+
+// doGet performs a GET request and decodes the response into result.
+func (c *Client) doGet(ctx context.Context, path string, result any) error {
+	return c.doRequest(ctx, http.MethodGet, path, nil, result)
+}
+
+// doPost performs a POST request with a JSON body and decodes the response.
+func (c *Client) doPost(ctx context.Context, path string, body any, result any) error {
+	return c.doRequest(ctx, http.MethodPost, path, body, result)
+}
+
+// doPut performs a PUT request with a JSON body and decodes the response.
+func (c *Client) doPut(ctx context.Context, path string, body any, result any) error {
+	return c.doRequest(ctx, http.MethodPut, path, body, result)
+}
+
+// doDelete performs a DELETE request.
+func (c *Client) doDelete(ctx context.Context, path string) error {
+	return c.doRequest(ctx, http.MethodDelete, path, nil, nil)
 }
