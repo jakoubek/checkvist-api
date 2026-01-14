@@ -63,14 +63,14 @@ func TestNotes_Create(t *testing.T) {
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 				t.Fatalf("failed to decode request: %v", err)
 			}
-			if req.Comment != "New note content" {
-				t.Errorf("expected comment 'New note content', got %s", req.Comment)
+			if req.Comment.Comment != "New note content" {
+				t.Errorf("expected comment 'New note content', got %s", req.Comment.Comment)
 			}
 
 			response := Note{
 				ID:        600,
 				TaskID:    101,
-				Comment:   req.Comment,
+				Comment:   req.Comment.Comment,
 				CreatedAt: NewAPITime(time.Now()),
 				UpdatedAt: NewAPITime(time.Now()),
 			}
@@ -111,14 +111,14 @@ func TestNotes_Update(t *testing.T) {
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 				t.Fatalf("failed to decode request: %v", err)
 			}
-			if req.Comment != "Updated comment" {
-				t.Errorf("expected comment 'Updated comment', got %s", req.Comment)
+			if req.Comment.Comment != "Updated comment" {
+				t.Errorf("expected comment 'Updated comment', got %s", req.Comment.Comment)
 			}
 
 			response := Note{
 				ID:        501,
 				TaskID:    101,
-				Comment:   req.Comment,
+				Comment:   req.Comment.Comment,
 				UpdatedAt: NewAPITime(time.Now()),
 			}
 			json.NewEncoder(w).Encode(response)

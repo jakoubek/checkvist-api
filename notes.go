@@ -34,15 +34,21 @@ func (s *NoteService) List(ctx context.Context) ([]Note, error) {
 	return notes, nil
 }
 
+// noteCommentWrapper wraps the comment field for the nested JSON format
+// expected by the Checkvist API: {"comment": {"comment": "text"}}
+type noteCommentWrapper struct {
+	Comment string `json:"comment"`
+}
+
 // createNoteRequest is the request body for creating a note.
 type createNoteRequest struct {
-	Comment string `json:"comment"`
+	Comment noteCommentWrapper `json:"comment"`
 }
 
 // Create creates a new note (comment) on the task.
 func (s *NoteService) Create(ctx context.Context, comment string) (*Note, error) {
 	path := fmt.Sprintf("/checklists/%d/tasks/%d/comments.json", s.checklistID, s.taskID)
-	body := createNoteRequest{Comment: comment}
+	body := createNoteRequest{Comment: noteCommentWrapper{Comment: comment}}
 
 	var note Note
 	if err := s.client.doPost(ctx, path, body, &note); err != nil {
@@ -53,13 +59,13 @@ func (s *NoteService) Create(ctx context.Context, comment string) (*Note, error)
 
 // updateNoteRequest is the request body for updating a note.
 type updateNoteRequest struct {
-	Comment string `json:"comment"`
+	Comment noteCommentWrapper `json:"comment"`
 }
 
 // Update updates an existing note's comment text.
 func (s *NoteService) Update(ctx context.Context, noteID int, comment string) (*Note, error) {
 	path := fmt.Sprintf("/checklists/%d/tasks/%d/comments/%d.json", s.checklistID, s.taskID, noteID)
-	body := updateNoteRequest{Comment: comment}
+	body := updateNoteRequest{Comment: noteCommentWrapper{Comment: comment}}
 
 	var note Note
 	if err := s.client.doPut(ctx, path, body, &note); err != nil {
