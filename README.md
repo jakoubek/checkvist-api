@@ -1,5 +1,10 @@
 # checkvist-api
 
+[![Mirror on GitHub](https://img.shields.io/badge/mirror-GitHub-blue)](https://github.com/jakoubek/checkvist-api)
+[![Go Reference](https://pkg.go.dev/badge/code.beautifulmachines.dev/jakoubek/checkvist-api.svg)](https://pkg.go.dev/code.beautifulmachines.dev/jakoubek/checkvist-api)
+[![Go Report Card](https://goreportcard.com/badge/code.beautifulmachines.dev/jakoubek/checkvist-api)](https://goreportcard.com/report/code.beautifulmachines.dev/jakoubek/checkvist-api)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A type-safe, idiomatic Go client library for the [Checkvist](https://checkvist.com/) API.
 
 ## Installation
@@ -133,8 +138,6 @@ The library provides convenient due date helpers:
 // Predefined constants
 checkvist.DueToday
 checkvist.DueTomorrow
-checkvist.DueNextWeek
-checkvist.DueNextMonth
 
 // From time.Time
 checkvist.DueAt(time.Now().AddDate(0, 0, 7))
@@ -143,7 +146,7 @@ checkvist.DueAt(time.Now().AddDate(0, 0, 7))
 checkvist.DueInDays(5)
 
 // Raw smart syntax
-checkvist.DueString("^friday")
+checkvist.DueString("friday")
 ```
 
 ## Error Handling
@@ -233,3 +236,11 @@ Full API documentation is available on [pkg.go.dev](https://pkg.go.dev/code.beau
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues or pull requests.
+
+## Author
+
+Oliver Jakoubek ([info@jakoubek.net](mailto:info@jakoubek.net))
