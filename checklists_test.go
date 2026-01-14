@@ -258,3 +258,91 @@ func TestChecklists_Delete(t *testing.T) {
 		t.Error("expected DELETE to be called")
 	}
 }
+
+func TestChecklists_Archive(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/auth/login.json":
+			json.NewEncoder(w).Encode(map[string]string{"token": "test-token"})
+		case "/checklists/1.json":
+			if r.Method != http.MethodPut {
+				t.Errorf("expected PUT, got %s", r.Method)
+			}
+
+			var req archiveRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				t.Fatalf("failed to decode request: %v", err)
+			}
+			if !req.Archived {
+				t.Error("expected archived=true")
+			}
+
+			response := Checklist{
+				ID:        1,
+				Name:      "Archived Checklist",
+				Archived:  true,
+				UpdatedAt: time.Now(),
+			}
+			json.NewEncoder(w).Encode(response)
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient("user@example.com", "api-key", WithBaseURL(server.URL))
+	checklist, err := client.Checklists().Archive(context.Background(), 1)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !checklist.Archived {
+		t.Error("expected checklist to be archived")
+	}
+}
+
+func TestChecklists_Unarchive(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/auth/login.json":
+			json.NewEncoder(w).Encode(map[string]string{"token": "test-token"})
+		case "/checklists/1.json":
+			if r.Method != http.MethodPut {
+				t.Errorf("expected PUT, got %s", r.Method)
+			}
+
+			var req archiveRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				t.Fatalf("failed to decode request: %v", err)
+			}
+			if req.Archived {
+				t.Error("expected archived=false")
+			}
+
+			response := Checklist{
+				ID:        1,
+				Name:      "Unarchived Checklist",
+				Archived:  false,
+				UpdatedAt: time.Now(),
+			}
+			json.NewEncoder(w).Encode(response)
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient("user@example.com", "api-key", WithBaseURL(server.URL))
+	checklist, err := client.Checklists().Unarchive(context.Background(), 1)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if checklist.Archived {
+		t.Error("expected checklist to not be archived")
+	}
+}

@@ -60,6 +60,7 @@ type CreateTaskRequest struct {
 	Due       string `json:"due,omitempty"`
 	Priority  int    `json:"priority,omitempty"`
 	Tags      string `json:"tags,omitempty"`
+	Repeat    string `json:"repeat,omitempty"`
 }
 
 // TaskBuilder provides a fluent interface for building task creation requests.
@@ -70,6 +71,7 @@ type TaskBuilder struct {
 	due      string
 	priority int
 	tags     []string
+	repeat   string
 }
 
 // NewTask creates a new TaskBuilder with the given content.
@@ -107,6 +109,21 @@ func (b *TaskBuilder) WithTags(tags ...string) *TaskBuilder {
 	return b
 }
 
+// WithRepeat sets the repeat pattern for the task using Checkvist's smart syntax.
+// Common patterns include:
+//   - "daily" - repeats every day
+//   - "weekly" - repeats every week
+//   - "monthly" - repeats every month
+//   - "yearly" - repeats every year
+//   - "every 2 days" - repeats every 2 days
+//   - "every week on monday" - repeats weekly on Monday
+//   - "every month on 15" - repeats monthly on the 15th
+//   - "every 2 weeks on friday" - repeats every 2 weeks on Friday
+func (b *TaskBuilder) WithRepeat(pattern string) *TaskBuilder {
+	b.repeat = pattern
+	return b
+}
+
 // build converts the TaskBuilder to a CreateTaskRequest.
 func (b *TaskBuilder) build() CreateTaskRequest {
 	req := CreateTaskRequest{
@@ -115,6 +132,7 @@ func (b *TaskBuilder) build() CreateTaskRequest {
 		Position: b.position,
 		Due:      b.due,
 		Priority: b.priority,
+		Repeat:   b.repeat,
 	}
 	if len(b.tags) > 0 {
 		for i, tag := range b.tags {

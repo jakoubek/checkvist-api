@@ -91,3 +91,32 @@ func (s *ChecklistService) Delete(ctx context.Context, id int) error {
 	path := fmt.Sprintf("/checklists/%d.json", id)
 	return s.client.doDelete(ctx, path)
 }
+
+// archiveRequest is the request body for archiving/unarchiving a checklist.
+type archiveRequest struct {
+	Archived bool `json:"archived"`
+}
+
+// Archive archives a checklist by ID.
+func (s *ChecklistService) Archive(ctx context.Context, id int) (*Checklist, error) {
+	path := fmt.Sprintf("/checklists/%d.json", id)
+	body := archiveRequest{Archived: true}
+
+	var checklist Checklist
+	if err := s.client.doPut(ctx, path, body, &checklist); err != nil {
+		return nil, err
+	}
+	return &checklist, nil
+}
+
+// Unarchive unarchives a checklist by ID.
+func (s *ChecklistService) Unarchive(ctx context.Context, id int) (*Checklist, error) {
+	path := fmt.Sprintf("/checklists/%d.json", id)
+	body := archiveRequest{Archived: false}
+
+	var checklist Checklist
+	if err := s.client.doPut(ctx, path, body, &checklist); err != nil {
+		return nil, err
+	}
+	return &checklist, nil
+}
