@@ -54,13 +54,13 @@ func (s *TaskService) Get(ctx context.Context, taskID int) (*Task, error) {
 
 // CreateTaskRequest represents the request body for creating a task.
 type CreateTaskRequest struct {
-	Content   string `json:"content"`
-	ParentID  int    `json:"parent_id,omitempty"`
-	Position  int    `json:"position,omitempty"`
-	Due       string `json:"due_date,omitempty"`
-	Priority  int    `json:"priority,omitempty"`
-	Tags      string `json:"tags,omitempty"`
-	Repeat    string `json:"repeat,omitempty"`
+	Content  string `json:"content"`
+	ParentID int    `json:"parent_id,omitempty"`
+	Position int    `json:"position,omitempty"`
+	Due      string `json:"due_date,omitempty"`
+	Priority int    `json:"priority,omitempty"`
+	Tags     string `json:"tags,omitempty"`
+	Repeat   string `json:"repeat,omitempty"`
 }
 
 // createTaskWrapper wraps the task fields for the nested JSON format

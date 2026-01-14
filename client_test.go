@@ -458,11 +458,11 @@ func TestCalculateRetryDelay(t *testing.T) {
 		attempt  int
 		expected time.Duration
 	}{
-		{1, 200 * time.Millisecond},  // 100ms * 2^1
-		{2, 400 * time.Millisecond},  // 100ms * 2^2
-		{3, 800 * time.Millisecond},  // 100ms * 2^3
-		{4, 1 * time.Second},         // capped at MaxDelay
-		{5, 1 * time.Second},         // capped at MaxDelay
+		{1, 200 * time.Millisecond}, // 100ms * 2^1
+		{2, 400 * time.Millisecond}, // 100ms * 2^2
+		{3, 800 * time.Millisecond}, // 100ms * 2^3
+		{4, 1 * time.Second},        // capped at MaxDelay
+		{5, 1 * time.Second},        // capped at MaxDelay
 	}
 
 	for _, tc := range tests {

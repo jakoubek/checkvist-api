@@ -480,9 +480,9 @@ func TestTasks_Create_RealAPIFormat(t *testing.T) {
 					ChecklistID: 1,
 					Content:     content,
 					Status:      StatusOpen,
-					Priority:    0,         // Priority NOT set (ignored)
-					DueDateRaw:  "",        // Due date NOT set (ignored)
-					TagsAsText:  "",        // Tags NOT set (ignored)
+					Priority:    0,  // Priority NOT set (ignored)
+					DueDateRaw:  "", // Due date NOT set (ignored)
+					TagsAsText:  "", // Tags NOT set (ignored)
 					CreatedAt:   NewAPITime(time.Now()),
 					UpdatedAt:   NewAPITime(time.Now()),
 				}
