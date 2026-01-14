@@ -3,14 +3,14 @@
     "id": 501,
     "task_id": 101,
     "comment": "First comment on task",
-    "updated_at": "2026-01-14T10:00:00Z",
-    "created_at": "2026-01-13T09:00:00Z"
+    "updated_at": "2026/01/14 10:00:00 +0000",
+    "created_at": "2026/01/13 09:00:00 +0000"
   },
   {
     "id": 502,
     "task_id": 101,
     "comment": "Second comment with more details",
-    "updated_at": "2026-01-14T11:30:00Z",
-    "created_at": "2026-01-14T11:00:00Z"
+    "updated_at": "2026/01/14 11:30:00 +0000",
+    "created_at": "2026/01/14 11:00:00 +0000"
   }
 ]

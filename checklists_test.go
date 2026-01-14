@@ -162,7 +162,7 @@ func TestChecklists_Create(t *testing.T) {
 				Name:      req.Name,
 				Public:    false,
 				Archived:  false,
-				UpdatedAt: time.Now(),
+				UpdatedAt: NewAPITime(time.Now()),
 			}
 			json.NewEncoder(w).Encode(response)
 		default:
@@ -208,7 +208,7 @@ func TestChecklists_Update(t *testing.T) {
 			response := Checklist{
 				ID:        1,
 				Name:      req.Name,
-				UpdatedAt: time.Now(),
+				UpdatedAt: NewAPITime(time.Now()),
 			}
 			json.NewEncoder(w).Encode(response)
 		default:
@@ -284,7 +284,7 @@ func TestChecklists_Archive(t *testing.T) {
 				ID:        1,
 				Name:      "Archived Checklist",
 				Archived:  true,
-				UpdatedAt: time.Now(),
+				UpdatedAt: NewAPITime(time.Now()),
 			}
 			json.NewEncoder(w).Encode(response)
 		default:
@@ -328,7 +328,7 @@ func TestChecklists_Unarchive(t *testing.T) {
 				ID:        1,
 				Name:      "Unarchived Checklist",
 				Archived:  false,
-				UpdatedAt: time.Now(),
+				UpdatedAt: NewAPITime(time.Now()),
 			}
 			json.NewEncoder(w).Encode(response)
 		default:

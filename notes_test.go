@@ -71,8 +71,8 @@ func TestNotes_Create(t *testing.T) {
 				ID:        600,
 				TaskID:    101,
 				Comment:   req.Comment,
-				CreatedAt: time.Now(),
-				UpdatedAt: time.Now(),
+				CreatedAt: NewAPITime(time.Now()),
+				UpdatedAt: NewAPITime(time.Now()),
 			}
 			json.NewEncoder(w).Encode(response)
 		default:
@@ -119,7 +119,7 @@ func TestNotes_Update(t *testing.T) {
 				ID:        501,
 				TaskID:    101,
 				Comment:   req.Comment,
-				UpdatedAt: time.Now(),
+				UpdatedAt: NewAPITime(time.Now()),
 			}
 			json.NewEncoder(w).Encode(response)
 		default:

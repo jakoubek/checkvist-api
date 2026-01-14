@@ -2,6 +2,7 @@ package checkvist
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -37,6 +38,50 @@ func (s TaskStatus) String() string {
 // Tags represents a set of tags as a map for efficient lookup.
 type Tags map[string]bool
 
+// APITime wraps time.Time with custom JSON unmarshaling for Checkvist API format.
+// The Checkvist API returns timestamps in format "2006/01/02 15:04:05 +0000"
+// instead of the standard RFC3339 format that Go expects.
+type APITime struct {
+	time.Time
+}
+
+// UnmarshalJSON handles multiple date formats from the Checkvist API.
+func (t *APITime) UnmarshalJSON(data []byte) error {
+	s := strings.Trim(string(data), `"`)
+	if s == "" || s == "null" {
+		return nil
+	}
+
+	// Try formats in order of likelihood
+	formats := []string{
+		"2006/01/02 15:04:05 -0700", // Checkvist API format
+		time.RFC3339,                 // ISO8601 with timezone
+		"2006-01-02T15:04:05Z",       // RFC3339 without offset
+	}
+
+	for _, format := range formats {
+		if parsed, err := time.Parse(format, s); err == nil {
+			t.Time = parsed
+			return nil
+		}
+	}
+
+	return fmt.Errorf("cannot parse %q as time", s)
+}
+
+// MarshalJSON outputs time in RFC3339 format.
+func (t APITime) MarshalJSON() ([]byte, error) {
+	if t.IsZero() {
+		return []byte("null"), nil
+	}
+	return []byte(`"` + t.Format(time.RFC3339) + `"`), nil
+}
+
+// NewAPITime creates an APITime from a time.Time value.
+func NewAPITime(t time.Time) APITime {
+	return APITime{Time: t}
+}
+
 // Checklist represents a Checkvist checklist.
 type Checklist struct {
 	// ID is the unique identifier of the checklist.
@@ -58,7 +103,7 @@ type Checklist struct {
 	// TagsAsText is the raw tags string from the API.
 	TagsAsText string `json:"tags_as_text"`
 	// UpdatedAt is the timestamp of the last update.
-	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedAt APITime `json:"updated_at"`
 }
 
 // Task represents a task within a Checkvist checklist.
@@ -92,9 +137,9 @@ type Task struct {
 	// UpdateLine contains brief update information.
 	UpdateLine string `json:"update_line"`
 	// UpdatedAt is the timestamp of the last update.
-	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedAt APITime `json:"updated_at"`
 	// CreatedAt is the timestamp when the task was created.
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt APITime `json:"created_at"`
 	// Children contains nested child tasks (when fetched with tree structure).
 	Children []*Task `json:"tasks,omitempty"`
 	// Notes contains the comments/notes attached to this task.
@@ -110,9 +155,9 @@ type Note struct {
 	// Comment is the text content of the note.
 	Comment string `json:"comment"`
 	// UpdatedAt is the timestamp of the last update.
-	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedAt APITime `json:"updated_at"`
 	// CreatedAt is the timestamp when the note was created.
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt APITime `json:"created_at"`
 }
 
 // User represents a Checkvist user.

@@ -8,7 +8,7 @@
     "task_count": 10,
     "task_completed": 3,
     "tags_as_text": "",
-    "updated_at": "2026-01-14T10:00:00Z"
+    "updated_at": "2026/01/14 10:00:00 +0000"
   },
   {
     "id": 2,
@@ -19,6 +19,6 @@
     "task_count": 25,
     "task_completed": 12,
     "tags_as_text": "work, important",
-    "updated_at": "2026-01-13T15:30:00Z"
+    "updated_at": "2026/01/13 15:30:00 +0000"
   }
 ]

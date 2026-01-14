@@ -98,8 +98,8 @@ func TestTasks_Create(t *testing.T) {
 				ChecklistID: 1,
 				Content:     req.Content,
 				Status:      StatusOpen,
-				CreatedAt:   time.Now(),
-				UpdatedAt:   time.Now(),
+				CreatedAt:   NewAPITime(time.Now()),
+				UpdatedAt:   NewAPITime(time.Now()),
 			}
 			json.NewEncoder(w).Encode(response)
 		default:
@@ -203,7 +203,7 @@ func TestTasks_Update(t *testing.T) {
 				ID:          101,
 				ChecklistID: 1,
 				Content:     "Updated content",
-				UpdatedAt:   time.Now(),
+				UpdatedAt:   NewAPITime(time.Now()),
 			}
 			json.NewEncoder(w).Encode(response)
 		default:
