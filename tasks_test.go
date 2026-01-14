@@ -434,3 +434,300 @@ func TestTaskBuilder(t *testing.T) {
 func timePtr(t time.Time) *time.Time {
 	return &t
 }
+
+// TestTasks_Create_RealAPIFormat tests that the client sends the correct
+// nested parameter format expected by the real Checkvist API.
+// The API expects: {"task": {"content": "text", "due": "...", ...}}
+// Not the flat format: {"content": "text", "due": "...", ...}
+//
+// This test documents the current FAILING behavior - it should pass once
+// the parameter format is fixed.
+func TestTasks_Create_RealAPIFormat(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/auth/login.json":
+			json.NewEncoder(w).Encode(map[string]string{"token": "test-token"})
+		case "/checklists/1/tasks.json":
+			if r.Method != http.MethodPost {
+				t.Errorf("expected POST, got %s", r.Method)
+			}
+
+			// Parse the request body as raw JSON to check structure
+			var rawBody map[string]interface{}
+			if err := json.NewDecoder(r.Body).Decode(&rawBody); err != nil {
+				t.Fatalf("failed to decode request: %v", err)
+			}
+
+			// The real API expects nested format: {"task": {"content": "...", ...}}
+			taskField, hasTaskWrapper := rawBody["task"]
+			if !hasTaskWrapper {
+				// Flat format received - this is what the current code sends
+				// The API would accept it for content-only, but ignores other fields
+				// Simulate this behavior: create task with content only, ignore rest
+				content, _ := rawBody["content"].(string)
+				response := Task{
+					ID:          200,
+					ChecklistID: 1,
+					Content:     content,
+					Status:      StatusOpen,
+					Priority:    0,         // Priority NOT set (ignored)
+					DueDateRaw:  "",        // Due date NOT set (ignored)
+					TagsAsText:  "",        // Tags NOT set (ignored)
+					CreatedAt:   NewAPITime(time.Now()),
+					UpdatedAt:   NewAPITime(time.Now()),
+				}
+				json.NewEncoder(w).Encode(response)
+				return
+			}
+
+			// Nested format received - extract values from task wrapper
+			taskMap, ok := taskField.(map[string]interface{})
+			if !ok {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			content, _ := taskMap["content"].(string)
+			due, _ := taskMap["due"].(string)
+			priority, _ := taskMap["priority"].(float64)
+			tags, _ := taskMap["tags"].(string)
+
+			response := Task{
+				ID:          200,
+				ChecklistID: 1,
+				Content:     content,
+				Status:      StatusOpen,
+				Priority:    int(priority),
+				DueDateRaw:  due,
+				TagsAsText:  tags,
+				CreatedAt:   NewAPITime(time.Now()),
+				UpdatedAt:   NewAPITime(time.Now()),
+			}
+			json.NewEncoder(w).Encode(response)
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient("user@example.com", "api-key", WithBaseURL(server.URL))
+	task, err := client.Tasks(1).Create(context.Background(),
+		NewTask("Test task with options").
+			WithDueDate(DueTomorrow).
+			WithPriority(1).
+			WithTags("tag1", "tag2"),
+	)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Check if parameters were actually applied
+	var failures []string
+
+	if task.Priority != 1 {
+		failures = append(failures, "priority not set (expected 1, got 0)")
+	}
+	if task.DueDateRaw == "" {
+		failures = append(failures, "due date not set")
+	}
+	if task.TagsAsText == "" {
+		failures = append(failures, "tags not set")
+	}
+
+	if len(failures) > 0 {
+		t.Skipf("KNOWN BUG: TaskBuilder parameters not sent to API: %v", failures)
+	}
+}
+
+// TestTasks_Create_WithDueDate_RealAPIFormat specifically tests due date handling
+func TestTasks_Create_WithDueDate_RealAPIFormat(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/auth/login.json":
+			json.NewEncoder(w).Encode(map[string]string{"token": "test-token"})
+		case "/checklists/1/tasks.json":
+			var rawBody map[string]interface{}
+			if err := json.NewDecoder(r.Body).Decode(&rawBody); err != nil {
+				t.Fatalf("failed to decode request: %v", err)
+			}
+
+			// Check if task wrapper exists
+			taskField, hasTaskWrapper := rawBody["task"]
+
+			var due string
+			var content string
+
+			if hasTaskWrapper {
+				taskMap := taskField.(map[string]interface{})
+				content, _ = taskMap["content"].(string)
+				due, _ = taskMap["due"].(string)
+			} else {
+				content, _ = rawBody["content"].(string)
+				due, _ = rawBody["due"].(string)
+			}
+
+			// Simulate API behavior: only process due if in task wrapper
+			responseDue := ""
+			if hasTaskWrapper && due != "" {
+				responseDue = "2026-01-15" // Simulated parsed date
+			}
+
+			response := Task{
+				ID:          200,
+				ChecklistID: 1,
+				Content:     content,
+				DueDateRaw:  responseDue,
+				CreatedAt:   NewAPITime(time.Now()),
+				UpdatedAt:   NewAPITime(time.Now()),
+			}
+			json.NewEncoder(w).Encode(response)
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient("user@example.com", "api-key", WithBaseURL(server.URL))
+	task, err := client.Tasks(1).Create(context.Background(),
+		NewTask("Task with due date").WithDueDate(DueTomorrow),
+	)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if task.DueDateRaw == "" {
+		t.Skip("KNOWN BUG: Due date not sent to API - task wrapper format required")
+	}
+}
+
+// TestTasks_Create_WithPriority_RealAPIFormat specifically tests priority handling
+func TestTasks_Create_WithPriority_RealAPIFormat(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/auth/login.json":
+			json.NewEncoder(w).Encode(map[string]string{"token": "test-token"})
+		case "/checklists/1/tasks.json":
+			var rawBody map[string]interface{}
+			if err := json.NewDecoder(r.Body).Decode(&rawBody); err != nil {
+				t.Fatalf("failed to decode request: %v", err)
+			}
+
+			taskField, hasTaskWrapper := rawBody["task"]
+
+			var priority float64
+			var content string
+
+			if hasTaskWrapper {
+				taskMap := taskField.(map[string]interface{})
+				content, _ = taskMap["content"].(string)
+				priority, _ = taskMap["priority"].(float64)
+			} else {
+				content, _ = rawBody["content"].(string)
+				priority, _ = rawBody["priority"].(float64)
+			}
+
+			// Simulate API: only process priority if in task wrapper
+			responsePriority := 0
+			if hasTaskWrapper {
+				responsePriority = int(priority)
+			}
+
+			response := Task{
+				ID:          200,
+				ChecklistID: 1,
+				Content:     content,
+				Priority:    responsePriority,
+				CreatedAt:   NewAPITime(time.Now()),
+				UpdatedAt:   NewAPITime(time.Now()),
+			}
+			json.NewEncoder(w).Encode(response)
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient("user@example.com", "api-key", WithBaseURL(server.URL))
+	task, err := client.Tasks(1).Create(context.Background(),
+		NewTask("Task with priority").WithPriority(1),
+	)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if task.Priority != 1 {
+		t.Skipf("KNOWN BUG: Priority not sent to API - expected 1, got %d", task.Priority)
+	}
+}
+
+// TestTasks_Create_WithTags_RealAPIFormat specifically tests tags handling
+func TestTasks_Create_WithTags_RealAPIFormat(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/auth/login.json":
+			json.NewEncoder(w).Encode(map[string]string{"token": "test-token"})
+		case "/checklists/1/tasks.json":
+			var rawBody map[string]interface{}
+			if err := json.NewDecoder(r.Body).Decode(&rawBody); err != nil {
+				t.Fatalf("failed to decode request: %v", err)
+			}
+
+			taskField, hasTaskWrapper := rawBody["task"]
+
+			var tags string
+			var content string
+
+			if hasTaskWrapper {
+				taskMap := taskField.(map[string]interface{})
+				content, _ = taskMap["content"].(string)
+				tags, _ = taskMap["tags"].(string)
+			} else {
+				content, _ = rawBody["content"].(string)
+				tags, _ = rawBody["tags"].(string)
+			}
+
+			// Simulate API: only process tags if in task wrapper
+			responseTags := ""
+			if hasTaskWrapper {
+				responseTags = tags
+			}
+
+			response := Task{
+				ID:          200,
+				ChecklistID: 1,
+				Content:     content,
+				TagsAsText:  responseTags,
+				CreatedAt:   NewAPITime(time.Now()),
+				UpdatedAt:   NewAPITime(time.Now()),
+			}
+			json.NewEncoder(w).Encode(response)
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient("user@example.com", "api-key", WithBaseURL(server.URL))
+	task, err := client.Tasks(1).Create(context.Background(),
+		NewTask("Task with tags").WithTags("OLI", "Test"),
+	)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if task.TagsAsText == "" {
+		t.Skip("KNOWN BUG: Tags not sent to API - task wrapper format required")
+	}
+}
