@@ -1,0 +1,34 @@
+[
+  {
+    "id": 101,
+    "checklist_id": 1,
+    "parent_id": 0,
+    "content": "First task",
+    "status": 0,
+    "position": 1,
+    "priority": 0,
+    "tags_as_text": "",
+    "due": "2026-01-20",
+    "assignee_ids": [],
+    "comments_count": 0,
+    "update_line": "",
+    "updated_at": "2026-01-14T10:00:00Z",
+    "created_at": "2026-01-10T09:00:00Z"
+  },
+  {
+    "id": 102,
+    "checklist_id": 1,
+    "parent_id": 0,
+    "content": "Second task",
+    "status": 1,
+    "position": 2,
+    "priority": 1,
+    "tags_as_text": "important, urgent",
+    "due": "",
+    "assignee_ids": [1, 2],
+    "comments_count": 3,
+    "update_line": "",
+    "updated_at": "2026-01-14T11:00:00Z",
+    "created_at": "2026-01-11T10:00:00Z"
+  }
+]
