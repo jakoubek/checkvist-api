@@ -1,0 +1,11 @@
+{
+  "id": 1,
+  "name": "My First Checklist",
+  "public": false,
+  "archived": false,
+  "read_only": false,
+  "task_count": 10,
+  "task_completed": 3,
+  "tags_as_text": "",
+  "updated_at": "2026-01-14T10:00:00Z"
+}
