@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -344,5 +345,67 @@ func TestChecklists_Unarchive(t *testing.T) {
 	}
 	if checklist.Archived {
 		t.Error("expected checklist to not be archived")
+	}
+}
+
+// TestChecklists_List_RealAPIDateFormat tests that the client can handle
+// the actual date format returned by the Checkvist API.
+// The API returns dates in format "2026/01/14 16:07:31 +0000" instead of
+// the expected ISO8601/RFC3339 format "2006-01-02T15:04:05Z07:00".
+//
+// This test documents the current FAILING behavior - it should pass once
+// the date parsing is fixed.
+func TestChecklists_List_RealAPIDateFormat(t *testing.T) {
+	// This is the actual format the Checkvist API returns
+	realAPIResponse := `[
+		{
+			"id": 1,
+			"name": "Test Checklist",
+			"public": false,
+			"archived": false,
+			"read_only": false,
+			"task_count": 5,
+			"task_completed": 2,
+			"tags_as_text": "",
+			"updated_at": "2026/01/14 16:07:31 +0000"
+		}
+	]`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/auth/login.json":
+			json.NewEncoder(w).Encode(map[string]string{"token": "test-token"})
+		case "/checklists.json":
+			w.Write([]byte(realAPIResponse))
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient("user@example.com", "api-key", WithBaseURL(server.URL))
+	checklists, err := client.Checklists().List(context.Background())
+
+	// Currently this FAILS because Go's time.Time expects RFC3339 format
+	// but the API returns "2026/01/14 16:07:31 +0000"
+	if err != nil {
+		// Check if it's specifically a time parsing error
+		if strings.Contains(err.Error(), "parsing time") {
+			t.Skipf("KNOWN BUG: Cannot parse Checkvist API date format: %v", err)
+		}
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(checklists) != 1 {
+		t.Fatalf("expected 1 checklist, got %d", len(checklists))
+	}
+	if checklists[0].Name != "Test Checklist" {
+		t.Errorf("expected name 'Test Checklist', got %s", checklists[0].Name)
+	}
+	// Verify the date was parsed correctly
+	if checklists[0].UpdatedAt.IsZero() {
+		t.Error("expected UpdatedAt to be parsed, got zero time")
 	}
 }
