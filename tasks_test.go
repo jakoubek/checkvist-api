@@ -277,10 +277,11 @@ func TestTasks_Close(t *testing.T) {
 			if r.Method != http.MethodPost {
 				t.Errorf("expected POST, got %s", r.Method)
 			}
-			response := Task{
+			// API returns an array containing the modified task and potentially subtasks
+			response := []Task{{
 				ID:     101,
 				Status: StatusClosed,
-			}
+			}}
 			json.NewEncoder(w).Encode(response)
 		default:
 			t.Errorf("unexpected path: %s", r.URL.Path)
@@ -310,10 +311,11 @@ func TestTasks_Reopen(t *testing.T) {
 			if r.Method != http.MethodPost {
 				t.Errorf("expected POST, got %s", r.Method)
 			}
-			response := Task{
+			// API returns an array containing the modified task and potentially subtasks
+			response := []Task{{
 				ID:     101,
 				Status: StatusOpen,
-			}
+			}}
 			json.NewEncoder(w).Encode(response)
 		default:
 			t.Errorf("unexpected path: %s", r.URL.Path)
@@ -343,10 +345,11 @@ func TestTasks_Invalidate(t *testing.T) {
 			if r.Method != http.MethodPost {
 				t.Errorf("expected POST, got %s", r.Method)
 			}
-			response := Task{
+			// API returns an array containing the modified task and potentially subtasks
+			response := []Task{{
 				ID:     101,
 				Status: StatusInvalidated,
-			}
+			}}
 			json.NewEncoder(w).Encode(response)
 		default:
 			t.Errorf("unexpected path: %s", r.URL.Path)

@@ -201,42 +201,57 @@ func (s *TaskService) Delete(ctx context.Context, taskID int) error {
 }
 
 // Close marks a task as completed.
+// The API returns an array containing the modified task and potentially its subtasks.
 func (s *TaskService) Close(ctx context.Context, taskID int) (*Task, error) {
 	path := fmt.Sprintf("/checklists/%d/tasks/%d/close.json", s.checklistID, taskID)
 
-	var task Task
-	if err := s.client.doPost(ctx, path, nil, &task); err != nil {
+	var tasks []Task
+	if err := s.client.doPost(ctx, path, nil, &tasks); err != nil {
 		return nil, err
 	}
 
-	parseDueDate(&task)
-	return &task, nil
+	if len(tasks) == 0 {
+		return nil, fmt.Errorf("close task: unexpected empty response")
+	}
+
+	parseDueDate(&tasks[0])
+	return &tasks[0], nil
 }
 
 // Reopen reopens a closed or invalidated task.
+// The API returns an array containing the modified task and potentially its subtasks.
 func (s *TaskService) Reopen(ctx context.Context, taskID int) (*Task, error) {
 	path := fmt.Sprintf("/checklists/%d/tasks/%d/reopen.json", s.checklistID, taskID)
 
-	var task Task
-	if err := s.client.doPost(ctx, path, nil, &task); err != nil {
+	var tasks []Task
+	if err := s.client.doPost(ctx, path, nil, &tasks); err != nil {
 		return nil, err
 	}
 
-	parseDueDate(&task)
-	return &task, nil
+	if len(tasks) == 0 {
+		return nil, fmt.Errorf("reopen task: unexpected empty response")
+	}
+
+	parseDueDate(&tasks[0])
+	return &tasks[0], nil
 }
 
 // Invalidate marks a task as invalidated (strikethrough).
+// The API returns an array containing the modified task and potentially its subtasks.
 func (s *TaskService) Invalidate(ctx context.Context, taskID int) (*Task, error) {
 	path := fmt.Sprintf("/checklists/%d/tasks/%d/invalidate.json", s.checklistID, taskID)
 
-	var task Task
-	if err := s.client.doPost(ctx, path, nil, &task); err != nil {
+	var tasks []Task
+	if err := s.client.doPost(ctx, path, nil, &tasks); err != nil {
 		return nil, err
 	}
 
-	parseDueDate(&task)
-	return &task, nil
+	if len(tasks) == 0 {
+		return nil, fmt.Errorf("invalidate task: unexpected empty response")
+	}
+
+	parseDueDate(&tasks[0])
+	return &tasks[0], nil
 }
 
 // parseDueDate attempts to parse the DueDateRaw string into a time.Time.
