@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Tasks**: Fix `Close()`, `Reopen()`, and `Invalidate()` to handle API array response format
+
+## [1.0.2] - 2026-01-15
+
+### Fixed
+
+- **DueDate**: Remove caret (`^`) prefix from due date values - API expects values like `"Tomorrow"` not `"^Tomorrow"`
+
+### Removed
+
+- **DueDate**: Remove unused `DueASAP` and `DueMonday` constants
+
+## [1.0.1] - 2026-01-15
+
+### Fixed
+
+- **DueDate**: Fix parsing of due dates returned by API - now supports both slash format (`2026/01/15`) and ISO format (`2026-01-15`)
+
+## [1.0.0] - 2026-01-14
+
 ### Added
 
 - **Client**: Core API client with functional options pattern
