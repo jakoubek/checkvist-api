@@ -377,6 +377,11 @@ func TestDueDate_Parsing(t *testing.T) {
 			expected: timePtr(time.Date(2026, 1, 20, 0, 0, 0, 0, time.UTC)),
 		},
 		{
+			name:     "Checkvist API format (slashes)",
+			dueRaw:   "2026/01/20",
+			expected: timePtr(time.Date(2026, 1, 20, 0, 0, 0, 0, time.UTC)),
+		},
+		{
 			name:     "empty string",
 			dueRaw:   "",
 			expected: nil,
@@ -413,7 +418,7 @@ func TestTaskBuilder(t *testing.T) {
 	builder := NewTask("Test content").
 		WithParent(50).
 		WithPosition(3).
-		WithDueDate(DueNextWeek).
+		WithDueDate(DueTomorrow).
 		WithPriority(2).
 		WithTags("work", "urgent")
 

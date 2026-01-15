@@ -240,14 +240,21 @@ func (s *TaskService) Invalidate(ctx context.Context, taskID int) (*Task, error)
 }
 
 // parseDueDate attempts to parse the DueDateRaw string into a time.Time.
-// It supports ISO 8601 date format (YYYY-MM-DD).
+// It supports the Checkvist API format (YYYY/MM/DD) and ISO 8601 format (YYYY-MM-DD).
 func parseDueDate(task *Task) {
 	if task.DueDateRaw == "" {
 		return
 	}
 
-	// Try to parse as ISO date
-	if t, err := time.Parse("2006-01-02", task.DueDateRaw); err == nil {
-		task.DueDate = &t
+	// Try multiple date formats (API uses slashes, ISO uses dashes)
+	formats := []string{
+		"2006/01/02", // Checkvist API format
+		"2006-01-02", // ISO 8601 format
+	}
+	for _, format := range formats {
+		if t, err := time.Parse(format, task.DueDateRaw); err == nil {
+			task.DueDate = &t
+			return
+		}
 	}
 }
