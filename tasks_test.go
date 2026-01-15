@@ -141,8 +141,8 @@ func TestTasks_Create_WithBuilder(t *testing.T) {
 			if req.Task.Priority != 1 {
 				t.Errorf("expected priority 1, got %d", req.Task.Priority)
 			}
-			if req.Task.Due != "^tomorrow" {
-				t.Errorf("expected due '^tomorrow', got %s", req.Task.Due)
+			if req.Task.Due != "Tomorrow" {
+				t.Errorf("expected due 'Tomorrow', got %s", req.Task.Due)
 			}
 			if req.Task.Tags != "tag1, tag2" {
 				t.Errorf("expected tags 'tag1, tag2', got %s", req.Task.Tags)
@@ -433,8 +433,8 @@ func TestTaskBuilder(t *testing.T) {
 	if req.Position != 3 {
 		t.Errorf("expected Position 3, got %d", req.Position)
 	}
-	if req.Due != "^Next Monday" {
-		t.Errorf("expected Due '^Next Monday', got %s", req.Due)
+	if req.Due != "Tomorrow" {
+		t.Errorf("expected Due 'Tomorrow', got %s", req.Due)
 	}
 	if req.Priority != 2 {
 		t.Errorf("expected Priority 2, got %d", req.Priority)

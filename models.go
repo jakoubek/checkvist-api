@@ -175,25 +175,21 @@ type DueDate struct {
 	value string
 }
 
-// Common due date constants using Checkvist's smart syntax.
+// Common due date constants for the Checkvist API.
 var (
 	// DueToday sets the due date to today.
-	DueToday = DueDate{value: "^Today"}
+	DueToday = DueDate{value: "Today"}
 	// DueTomorrow sets the due date to tomorrow.
-	DueTomorrow = DueDate{value: "^Tomorrow"}
-	// DueASAP sets the due date to ASAP.
-	DueASAP = DueDate{value: "^ASAP"}
-	// DueMonday sets the due date to next Monday.
-	DueMonday = DueDate{value: "^Monday"}
+	DueTomorrow = DueDate{value: "Tomorrow"}
 )
 
 // DueAt creates a DueDate from a Go time.Time value.
 func DueAt(t time.Time) DueDate {
-	return DueDate{value: "^" + t.Format("2006-01-02")}
+	return DueDate{value: t.Format("2006-01-02")}
 }
 
-// DueString creates a DueDate from a raw smart syntax string.
-// The string should use Checkvist's smart syntax (e.g., "^2026-02-01", "^friday", "^next week").
+// DueString creates a DueDate from a raw string.
+// Use this for custom date formats (e.g., "2026-02-01", "friday", "next week").
 func DueString(s string) DueDate {
 	return DueDate{value: s}
 }
@@ -201,7 +197,7 @@ func DueString(s string) DueDate {
 // DueInDays creates a DueDate for n days from now.
 func DueInDays(n int) DueDate {
 	t := time.Now().AddDate(0, 0, n)
-	return DueDate{value: "^" + t.Format("2006-01-02")}
+	return DueDate{value: t.Format("2006-01-02")}
 }
 
 // String returns the smart syntax string for the due date.
