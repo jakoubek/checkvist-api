@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-01-18
+
 ### Changed
 
 - **BREAKING**: `Task.Children []*Task` renamed to `Task.ChildIDs []int` to match API response format (API returns array of child task IDs, not full task objects)
