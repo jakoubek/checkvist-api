@@ -73,6 +73,60 @@ func TestTasks_Get(t *testing.T) {
 	}
 }
 
+func TestTask_ChildIDs_Unmarshal(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/auth/login.json":
+			json.NewEncoder(w).Encode(map[string]string{"token": "test-token"})
+		case "/checklists/1/tasks/101.json":
+			w.Write(loadFixture(t, "testdata/tasks/single.json"))
+		case "/checklists/1/tasks.json":
+			w.Write(loadFixture(t, "testdata/tasks/list.json"))
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient("user@example.com", "api-key", WithBaseURL(server.URL))
+
+	t.Run("single task with child IDs", func(t *testing.T) {
+		task, err := client.Tasks(1).Get(context.Background(), 101)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		expectedChildIDs := []int{201, 202, 203}
+		if len(task.ChildIDs) != len(expectedChildIDs) {
+			t.Fatalf("expected %d child IDs, got %d", len(expectedChildIDs), len(task.ChildIDs))
+		}
+		for i, id := range expectedChildIDs {
+			if task.ChildIDs[i] != id {
+				t.Errorf("expected ChildIDs[%d] = %d, got %d", i, id, task.ChildIDs[i])
+			}
+		}
+	})
+
+	t.Run("list with mixed child IDs", func(t *testing.T) {
+		tasks, err := client.Tasks(1).List(context.Background())
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		// First task has child IDs [201, 202]
+		if len(tasks[0].ChildIDs) != 2 {
+			t.Errorf("expected 2 child IDs for first task, got %d", len(tasks[0].ChildIDs))
+		}
+		if tasks[0].ChildIDs[0] != 201 || tasks[0].ChildIDs[1] != 202 {
+			t.Errorf("expected ChildIDs [201, 202], got %v", tasks[0].ChildIDs)
+		}
+		// Second task has empty child IDs
+		if len(tasks[1].ChildIDs) != 0 {
+			t.Errorf("expected 0 child IDs for second task, got %d", len(tasks[1].ChildIDs))
+		}
+	})
+}
+
 func TestTasks_Create(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

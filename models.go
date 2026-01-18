@@ -140,8 +140,8 @@ type Task struct {
 	UpdatedAt APITime `json:"updated_at"`
 	// CreatedAt is the timestamp when the task was created.
 	CreatedAt APITime `json:"created_at"`
-	// Children contains nested child tasks (when fetched with tree structure).
-	Children []*Task `json:"tasks,omitempty"`
+	// ChildIDs contains IDs of child tasks (returned by API as array of integers).
+	ChildIDs []int `json:"tasks,omitempty"`
 	// Notes contains the comments/notes attached to this task.
 	Notes []Note `json:"notes,omitempty"`
 }
