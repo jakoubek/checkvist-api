@@ -2,6 +2,7 @@ package checkvist
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -162,5 +163,52 @@ func TestNewAPITime(t *testing.T) {
 
 	if !apiTime.Time.Equal(now) {
 		t.Errorf("NewAPITime() did not preserve time: got %v, want %v", apiTime.Time, now)
+	}
+}
+
+func TestTask_UnmarshalJSON_Tags(t *testing.T) {
+	tests := []struct {
+		in   string
+		want Tags
+	}{
+		{"", Tags{}},
+		{"urgent", Tags{"urgent": true}},
+		{"work, Important", Tags{"work": true, "Important": true}},
+		{" a ,, b ,", Tags{"a": true, "b": true}},
+	}
+	for _, tt := range tests {
+		data, _ := json.Marshal(map[string]any{"id": 1, "tags_as_text": tt.in})
+		var task Task
+		if err := json.Unmarshal(data, &task); err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(task.Tags, tt.want) {
+			t.Errorf("tags_as_text %q: Tags = %v, want %v", tt.in, task.Tags, tt.want)
+		}
+		if task.TagsAsText != tt.in {
+			t.Errorf("TagsAsText = %q, want %q", task.TagsAsText, tt.in)
+		}
+	}
+}
+
+func TestTask_UnmarshalJSON_TagsFromFixture(t *testing.T) {
+	var tasks []Task
+	if err := json.Unmarshal(loadFixture(t, "testdata/tasks/list.json"), &tasks); err != nil {
+		t.Fatal(err)
+	}
+	want := Tags{"important": true, "urgent": true}
+	if !reflect.DeepEqual(tasks[1].Tags, want) {
+		t.Errorf("Tags = %v, want %v", tasks[1].Tags, want)
+	}
+}
+
+func TestChecklist_UnmarshalJSON_TagsFromFixture(t *testing.T) {
+	var lists []Checklist
+	if err := json.Unmarshal(loadFixture(t, "testdata/checklists/list.json"), &lists); err != nil {
+		t.Fatal(err)
+	}
+	want := Tags{"work": true, "important": true}
+	if !reflect.DeepEqual(lists[1].Tags, want) {
+		t.Errorf("Tags = %v, want %v", lists[1].Tags, want)
 	}
 }

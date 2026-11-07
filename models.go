@@ -1,6 +1,7 @@
 package checkvist
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -75,6 +76,38 @@ func (t APITime) MarshalJSON() ([]byte, error) {
 		return []byte("null"), nil
 	}
 	return []byte(`"` + t.Format(time.RFC3339) + `"`), nil
+}
+
+// parseTags splits the comma-separated tags_as_text string into a Tags set.
+// shortcut: tag names containing a comma are split, Checkvist does not allow them anyway.
+func parseTags(s string) Tags {
+	tags := Tags{}
+	for _, part := range strings.Split(s, ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			tags[part] = true
+		}
+	}
+	return tags
+}
+
+// UnmarshalJSON decodes a Task and fills Tags from TagsAsText.
+func (t *Task) UnmarshalJSON(data []byte) error {
+	type alias Task
+	if err := json.Unmarshal(data, (*alias)(t)); err != nil {
+		return err
+	}
+	t.Tags = parseTags(t.TagsAsText)
+	return nil
+}
+
+// UnmarshalJSON decodes a Checklist and fills Tags from TagsAsText.
+func (c *Checklist) UnmarshalJSON(data []byte) error {
+	type alias Checklist
+	if err := json.Unmarshal(data, (*alias)(c)); err != nil {
+		return err
+	}
+	c.Tags = parseTags(c.TagsAsText)
+	return nil
 }
 
 // NewAPITime creates an APITime from a time.Time value.
