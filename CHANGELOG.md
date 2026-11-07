@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-11-07
+
 ### Fixed
 
 - `Task.Tags` and `Checklist.Tags` are now populated from `tags_as_text` when decoding (previously always empty)
