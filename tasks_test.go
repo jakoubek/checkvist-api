@@ -3,6 +3,7 @@ package checkvist
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -799,5 +800,48 @@ func TestTasks_Create_WithTags_RealAPIFormat(t *testing.T) {
 
 	if task.TagsAsText == "" {
 		t.Skip("KNOWN BUG: Tags not sent to API - task wrapper format required")
+	}
+}
+
+func TestTasks_Get_ArrayResponse(t *testing.T) {
+	task := func(id, checklistID int) map[string]any {
+		return map[string]any{"id": id, "checklist_id": checklistID, "content": "task"}
+	}
+
+	tests := []struct {
+		name     string
+		response []map[string]any
+		wantID   int
+		wantErr  error
+	}{
+		{"single element", []map[string]any{task(101, 1)}, 101, nil},
+		{"picks requested task among parents", []map[string]any{task(100, 1), task(101, 1)}, 101, nil},
+		{"empty array", []map[string]any{}, 0, ErrNotFound},
+		{"requested id missing", []map[string]any{task(100, 1)}, 0, ErrNotFound},
+		{"wrong checklist", []map[string]any{task(101, 2)}, 0, ErrNotFound},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if r.URL.Path == "/auth/login.json" {
+					json.NewEncoder(w).Encode(map[string]string{"token": "test-token"})
+					return
+				}
+				json.NewEncoder(w).Encode(tt.response)
+			}))
+			defer server.Close()
+
+			client := NewClient("user@example.com", "api-key", WithBaseURL(server.URL))
+			got, err := client.Tasks(1).Get(context.Background(), 101)
+
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("expected error %v, got %v", tt.wantErr, err)
+			}
+			if tt.wantErr == nil && got.ID != tt.wantID {
+				t.Errorf("expected ID %d, got %d", tt.wantID, got.ID)
+			}
+		})
 	}
 }

@@ -43,13 +43,20 @@ func (s *TaskService) List(ctx context.Context) ([]Task, error) {
 func (s *TaskService) Get(ctx context.Context, taskID int) (*Task, error) {
 	path := fmt.Sprintf("/checklists/%d/tasks/%d.json", s.checklistID, taskID)
 
-	var task Task
-	if err := s.client.doGet(ctx, path, &task); err != nil {
+	// The API answers with an array (the item, possibly with parents) and ignores
+	// the checklist in the URL, so match ID and checklist ourselves.
+	var tasks []Task
+	if err := s.client.doGet(ctx, path, &tasks); err != nil {
 		return nil, err
 	}
 
-	parseDueDate(&task)
-	return &task, nil
+	for i := range tasks {
+		if tasks[i].ID == taskID && tasks[i].ChecklistID == s.checklistID {
+			parseDueDate(&tasks[i])
+			return &tasks[i], nil
+		}
+	}
+	return nil, ErrNotFound
 }
 
 // CreateTaskRequest represents the request body for creating a task.

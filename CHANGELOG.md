@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `TaskService.Get` decodes the array response of the API (previously failed for every list) and returns `ErrNotFound` if the task is missing or belongs to another checklist
+
 ## [1.0.4] - 2026-11-07
 
 ### Fixed
